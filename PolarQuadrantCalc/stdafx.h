@@ -1,0 +1,37 @@
+#pragma once
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#include <Xinput.h>
+#include <iostream>
+#include <fstream>
+#include <random>
+#include <string>
+#include <array>
+#include <locale>
+#include <sstream>
+#include <chrono>
+#include <tuple>
+#include <numeric>
+#include <typeinfo>
+#include <exception>
+#include <format>
+#include <iomanip>
+#include <utility>
+#include <concepts>
+#include <bitset>
+#include <ostream>
+#include <sstream>
+#include <syncstream>
+#include <thread>
+#include <concepts>
+#include <ranges>
+#include <iostream>
+#include <variant>
+#include <map>
+#include <filesystem>
+#include <numbers>
