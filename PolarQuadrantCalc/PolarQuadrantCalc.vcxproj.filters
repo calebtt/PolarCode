@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PolarQuadrantCalc.cpp">
+    <ClCompile Include="PolarQuadrantCalcExample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

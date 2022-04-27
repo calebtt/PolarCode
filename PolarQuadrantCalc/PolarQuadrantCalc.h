@@ -12,7 +12,7 @@ private:
 	static constexpr FloatingType MAGNITUDE_SENTINEL{ 28'000 };
 	static constexpr FloatingType MY_PI{ std::numbers::pi };
 	static constexpr FloatingType MY_TAU{ std::numbers::pi / 2 };
-	
+
 	//array of boundary values, used to determine which polar quadrant a polar angle resides in
 	static constexpr std::array<const std::pair<FloatingType, FloatingType>, NUM_QUADRANTS> m_quadArray{
 		std::make_pair(0.0, MY_TAU),
@@ -32,7 +32,7 @@ private:
 		FloatingType polar_radius{};
 		FloatingType polar_theta_angle{};
 	};
-	//Pair[double, double] wherein the first member is the adjusted X magnitude value, and the second is the adjusted Y magnitude
+	//Pair[FloatingType, FloatingType] wherein the first member is the adjusted X magnitude value, and the second is the adjusted Y magnitude
 	struct AdjustedMagnitudePack
 	{
 		FloatingType x_adjusted_mag{};
@@ -47,7 +47,7 @@ private:
 public:
 	[[nodiscard]] static PolarCompleteInfoPack ComputePolarCompleteInfo(const FloatingType xStickValue, const FloatingType yStickValue) noexcept
 	{
-		PolarCompleteInfoPack tempPack;
+		PolarCompleteInfoPack tempPack{};
 		tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
 		tempPack.quadrant_info = GetQuadrantInfo(tempPack.polar_info.polar_theta_angle);
 		tempPack.adjusted_magnitudes = ComputeAdjustedMagnitudes(tempPack.polar_info, tempPack.quadrant_info);
@@ -69,8 +69,10 @@ public:
 	//compute polar coord pair
 	[[nodiscard]] static PolarInfoPack ComputePolarPair(const FloatingType xStickValue, const FloatingType yStickValue) noexcept
 	{
-		const double xValue = xStickValue;
-		const double yValue = yStickValue;
+		constexpr FloatingType nonZeroValue = 0.01; // cannot compute with both values at 0, this is used instead
+		const bool areBothZero = xStickValue == 0.0 && yStickValue == 0.0;
+		const double xValue = areBothZero ? nonZeroValue : xStickValue;
+		const double yValue = areBothZero ? nonZeroValue : yStickValue;
 		const auto xSquared = xValue * xValue;
 		const auto ySquared = yValue * yValue;
 		const auto rad = std::sqrt(xSquared + ySquared);
@@ -79,7 +81,7 @@ public:
 	}
 	/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 	/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-	[[nodiscard]] static constexpr QuadrantInfoPack GetQuadrantInfo(const FloatingType polarTheta) noexcept
+	[[nodiscard]] static QuadrantInfoPack GetQuadrantInfo(const FloatingType polarTheta) noexcept
 	{
 		constexpr std::string_view BAD_QUAD = "Invalid value that does not map to a quadrant in GetQuadrantInfo(const FloatingType)";
 		size_t index{};
@@ -107,8 +109,8 @@ private:
 		tempY = std::clamp(tempY, -MAGNITUDE_SENTINEL, MAGNITUDE_SENTINEL);
 		return { tempX, tempY };
 	}
-	static void LogError(const std::string_view msg) noexcept
+	static void LogError(const std::string_view msg)
 	{
-		std::cerr << msg << std::endl;
+		std::cerr << msg << '\n';
 	}
 };

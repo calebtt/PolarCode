@@ -38,6 +38,6 @@ int main(int argc, const char* argv[])
 			cout << "-------" << newl;
 		}
 		
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds(4));
 	}
 }
