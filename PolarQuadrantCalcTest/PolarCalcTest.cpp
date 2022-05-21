@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "CppUnitTest.h"
-#include "../PolarQuadrantCalc/PolarQuadrantCalc.h"
+#include "../PolarQuadrantCalc/PolarCalc.h"
 #include <chrono>
 #include <format>
 
@@ -8,9 +8,9 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace PolarQuadrantCalcTest
 {
-	TEST_CLASS(PolarQuadrantCalcTest)
+	TEST_CLASS(PolarCalcTest)
 	{
-		static constexpr auto MAGNITUDE_MAX{ 28'000 };
+		static constexpr auto MAGNITUDE_MAX{ 28'000.0 };
 	public:
 		[[nodiscard]] static constexpr bool IsWithin(const auto result, const auto testVal, const auto within) noexcept
 		{
@@ -29,15 +29,20 @@ namespace PolarQuadrantCalcTest
 			constexpr auto SMax = std::numeric_limits<SHORT>::max();
 			//theoretical hardware value max
 			constexpr auto SMin = std::numeric_limits<SHORT>::min();
-			auto ComputeAndShow = [](const double x, const double y, const std::string &msg, const double xShouldBe, const double yShouldBe, const bool printMessages = true)
+			//error logging fn
+			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
+			//polar calc instance
+			sds::PolarCalc pc(MAGNITUDE_MAX, LogFn);
+			//lambda for testing
+			auto ComputeAndShow = [&](const double x, const double y, const std::string& msg, const double xShouldBe, const double yShouldBe, const bool printMessages = true)
 			{
-				const auto completeInfo = PolarQuadrantCalc::ComputePolarCompleteInfo(x, y);
+				const auto completeInfo = pc.ComputePolarCompleteInfo(x, y);
 				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
 				std::stringstream ss;
 				ss << "Magnitude of x at " + msg + ": " << xMax << newl;
 				ss << "Magnitude of y at " + msg + ": " << yMax << newl;
 				ss << "-------" << newl;
-				if(printMessages)
+				if (printMessages)
 					Logger::WriteMessage(ss.str().c_str());
 				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
 				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
@@ -47,14 +52,14 @@ namespace PolarQuadrantCalcTest
 			ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX);
 			ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX);
 			ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX, MAGNITUDE_MAX);
-			ComputeAndShow(SMin/2.0, SMin/2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0);
-			const auto completeInfo = PolarQuadrantCalc::ComputePolarCompleteInfo(SMax/2.0, SMax/2.0);
+			ComputeAndShow(SMin / 2.0, SMin / 2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0);
+			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2.0, SMax / 2.0);
 			const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
 			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
 
 			//Running several iterations in a loop with begin and end time stamps.
 			const auto timeResultBegin = std::chrono::system_clock::now();
-			for(size_t i = 0; i < MAX_ITERATIONS; ++i)
+			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
 			{
 				ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX, false);
 				ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX, false);
