@@ -151,6 +151,8 @@
   <ItemGroup>
     <ClInclude Include="GetterExit.h" />
     <ClInclude Include="PolarCalc.h" />
+    <ClInclude Include="PolarCalcFaster.h" />
+    <ClInclude Include="PolarTransform.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
