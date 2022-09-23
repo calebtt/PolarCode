@@ -67,7 +67,7 @@ namespace sds
 			LoggingCallback(std::move(logFunc))
 		{
 		}
-		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) noexcept
+		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const StickValue_t xStickValue, const StickValue_t yStickValue) const noexcept
 		{
 			PolarCompleteInfoPack tempPack{};
 			tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
@@ -105,12 +105,12 @@ namespace sds
 		}
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
+		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) const noexcept
 		{
 			constexpr std::string_view BAD_QUAD = "Invalid value that does not map to a quadrant in GetQuadrantInfo(const FloatingType)";
 			size_t index{};
 			//Find polar theta value's place in the quadrant range array.
-			const auto quadrantResult = std::ranges::find_if(m_quadArray, [&](const auto val)
+			const auto quadrantResult = std::find_if(m_quadArray.cbegin(), m_quadArray.cend(), [&](const auto val)
 				{
 					++index;
 					return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));

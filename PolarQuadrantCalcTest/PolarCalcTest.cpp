@@ -155,6 +155,8 @@ namespace PolarQuadrantCalcTest
 			static constexpr auto WITHIN_VAL{ 2000 };
 			static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
 			static constexpr int MAGNITUDE_MAX_LOCAL{ 28'000 };
+			static constexpr int INIT_MAX_LOCAL{ 39'000 };
+			static constexpr int POLAR_MAX_LOCAL{ 36'394 };
 			//theoretical hardware value max
 			constexpr auto SMax = std::numeric_limits<SHORT>::max();
 			//theoretical hardware value max
@@ -162,9 +164,9 @@ namespace PolarQuadrantCalcTest
 			//error logging fn
 			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
 			//polar calc instance
-			sds::PolarCalcFaster pc(MAGNITUDE_MAX_LOCAL, LogFn);
+			sds::PolarCalcFaster pc(INIT_MAX_LOCAL, LogFn);
 			//lambda for testing
-			auto ComputeAndShow = [&](const double x, const double y, const std::string& msg, const double xShouldBe, const double yShouldBe, const bool printMessages = true)
+			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe, const bool printMessages = true)
 			{
 				const auto completeInfo = pc.ComputePolarCompleteInfo(x, y);
 				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
@@ -176,14 +178,16 @@ namespace PolarQuadrantCalcTest
 					Logger::WriteMessage(ss.str().c_str());
 				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
 				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				Assert::IsTrue(xResult, L"X axis not within acceptable parameters...");
-				Assert::IsTrue(yResult, L"Y axis not within acceptable parameters...");
+				const std::wstring xResultMessage = L"X axis not within acceptable parameters..." + std::to_wstring(xMax);
+				const std::wstring yResultMessage = L"Y axis not within acceptable parameters..." + std::to_wstring(yMax);
+				Assert::IsTrue(xResult, xResultMessage.c_str());
+				Assert::IsTrue(yResult, yResultMessage.c_str());
 			};
-			ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin / 2.0, SMin / 2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0);
-			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2.0, SMax / 2.0);
+			ComputeAndShow(SMax, SMax, "short-max,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
+			ComputeAndShow(SMin, SMax, "short-min,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
+			ComputeAndShow(SMin, SMin, "short-min,short-min", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
+			ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
+			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2, SMax / 2);
 			const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
 			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
 
@@ -191,10 +195,10 @@ namespace PolarQuadrantCalcTest
 			const auto timeResultBegin = std::chrono::system_clock::now();
 			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
 			{
-				ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin / 2.0, SMin / 2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0, false);
+				ComputeAndShow(SMax, SMax, "short-max,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
+				ComputeAndShow(SMin, SMax, "short-min,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
+				ComputeAndShow(SMin, SMin, "short-min,short-min", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
+				ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2, false);
 			}
 			const auto timeResultEnd = std::chrono::system_clock::now();
 			Logger::WriteMessage(std::format("Starting at {0} ...\n", timeResultBegin).c_str());
