@@ -17,8 +17,8 @@ MouseSettings m_mouse_settings{};
 
 [[nodiscard]] auto ConvertMagnitudesToDelays(const auto xPolarDelay, const auto yPolarDelay) -> std::pair<size_t, size_t>
 {
-	const float xPercentOfRadius = xPolarDelay / static_cast<float>(m_mouse_settings.PolarRadiusValueMax);
-	const float yPercentOfRadius = yPolarDelay / static_cast<float>(m_mouse_settings.PolarRadiusValueMax);
+	const double xPercentOfRadius = xPolarDelay / static_cast<double>(m_mouse_settings.PolarRadiusValueMax);
+	const double yPercentOfRadius = yPolarDelay / static_cast<double>(m_mouse_settings.PolarRadiusValueMax);
 	auto xResult = static_cast<size_t>(std::lerp(m_mouse_settings.MICROSECONDS_MIN, m_mouse_settings.MICROSECONDS_MAX, xPercentOfRadius));
 	auto yResult = static_cast<size_t>(std::lerp(m_mouse_settings.MICROSECONDS_MIN, m_mouse_settings.MICROSECONDS_MAX, yPercentOfRadius));
 	return { xResult, yResult };
