@@ -1,9 +1,13 @@
 #pragma once
+#include <cassert>
+
 #include "stdafx.h"
 #include <functional>
 
 namespace sds
 {
+	//MagnitudeSentinel is used to trim the adjusted magnitude values from the thumbstick, max on my hardware close to 32k.
+	template<int MagnitudeSentinel = 32'766>
 	class PolarCalcFaster
 	{
 	private:
@@ -50,23 +54,7 @@ namespace sds
 			std::make_pair(-MY_PI, -MY_PI2),
 			std::make_pair(-MY_PI2, 0.0)
 		};
-		//used to trim the adjusted magnitude values from the thumbstick, max on my hardware close to 32k.
-		StickValue_t MagnitudeSentinel;
-		LogFn_t LoggingCallback;
-		// Holds the polar info computed at construction.
-		PolarCompleteInfoPack ComputedInfo{};
 	public:
-		/// <summary> Ctor, constructs polar quadrant calc object. </summary>
-		/// <param name="magnitudeSentinel"> thumbstick hardware max val for trimming </param>
-		/// <param name="logFunc"> Pointer to logging function of the form <c>void fn_name(const char* msg)</c> </param>
-		PolarCalcFaster(
-			const StickValue_t magnitudeSentinel = 32'766,
-			LogFn_t logFunc = nullptr
-		) noexcept
-			: MagnitudeSentinel(magnitudeSentinel),
-			LoggingCallback(std::move(logFunc))
-		{
-		}
 		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const StickValue_t xStickValue, const StickValue_t yStickValue) const noexcept
 		{
 			PolarCompleteInfoPack tempPack{};
@@ -91,9 +79,8 @@ namespace sds
 		//compute polar coord pair
 		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
 		{
-			constexpr ComputationFloat_t nonZeroValue{ 0.01 }; // cannot compute with both values at 0, this is used instead
-			const bool areBothZero = xStickValue == decltype(xStickValue){}
-			&& yStickValue == decltype(yStickValue){};
+			constexpr auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
+			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
 
 			const double xValue = areBothZero ? nonZeroValue : xStickValue;
 			const double yValue = areBothZero ? nonZeroValue : yStickValue;
@@ -107,7 +94,6 @@ namespace sds
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
 		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) const noexcept
 		{
-			constexpr std::string_view BAD_QUAD = "Invalid value that does not map to a quadrant in GetQuadrantInfo(const FloatingType)";
 			size_t index{};
 			//Find polar theta value's place in the quadrant range array.
 			const auto quadrantResult = std::find_if(m_quadArray.cbegin(), m_quadArray.cend(), [&](const auto val)
@@ -115,12 +101,7 @@ namespace sds
 					++index;
 					return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));
 				});
-			//This should not happen, but if it does, I want some kind of message about it.
-			if (quadrantResult == m_quadArray.end())
-			{
-				LoggingCallback(BAD_QUAD.data());
-				return { {0.0,0.0}, -1 };
-			}
+			assert(quadrantResult != m_quadArray.end());
 			return { .quadrant_range = (*quadrantResult), .quadrant_number = static_cast<int>(index) };
 		}
 	private:
@@ -132,6 +113,13 @@ namespace sds
 			tempX = std::clamp(tempX, -MagnitudeSentinel, MagnitudeSentinel);
 			tempY = std::clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
 			return { tempX, tempY };
+		}
+
+		[[nodiscard]] bool IsFloatZero(const auto testFloat) const noexcept
+		{
+			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
+			constexpr auto eps2 = eps * 2;
+			return std::abs(testFloat) <= eps2;
 		}
 	};
 }

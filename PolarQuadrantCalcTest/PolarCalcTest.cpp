@@ -161,10 +161,8 @@ namespace PolarQuadrantCalcTest
 			constexpr auto SMax = std::numeric_limits<SHORT>::max();
 			//theoretical hardware value max
 			constexpr auto SMin = std::numeric_limits<SHORT>::min();
-			//error logging fn
-			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
 			//polar calc instance
-			sds::PolarCalcFaster pc(INIT_MAX_LOCAL, LogFn);
+			sds::PolarCalcFaster<INIT_MAX_LOCAL> pc;
 			//lambda for testing
 			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe, const bool printMessages = true)
 			{
