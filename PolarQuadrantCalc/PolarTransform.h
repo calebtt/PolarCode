@@ -4,6 +4,7 @@
 
 namespace sds
 {
+	template<int MagnitudeSentinel = 32'766>
 	class PolarTransform
 	{
 	private:
@@ -13,8 +14,6 @@ namespace sds
 		using ComputationFloat_t = double;
 		// Stick input value type
 		using StickValue_t = int;
-		// Pointer to logging function of the form void fn_name(const char* msg)
-		using LogFn_t = std::function<void(const char* st)>;
 		static constexpr ComputationFloat_t MY_PI{ std::numbers::pi };
 		static constexpr ComputationFloat_t MY_PI2{ std::numbers::pi / 2.0 };
 	private:
@@ -50,25 +49,16 @@ namespace sds
 			std::make_pair(-MY_PI, -MY_PI2),
 			std::make_pair(-MY_PI2, 0.0)
 		};
-		//used to trim the adjusted magnitude values from the thumbstick, max on my hardware close to 32k.
-		StickValue_t MagnitudeSentinel;
-		LogFn_t LoggingCallback;
 		// Holds the polar info computed at construction.
 		PolarCompleteInfoPack ComputedInfo{};
 	public:
 		/// <summary> Ctor, constructs polar quadrant calc object. </summary>
 		///	<param name="stickXValue"> <b>x axis hardware</b> value from thumbstick </param>
 		///	<param name="stickYValue"> <b>y axis hardware</b> value from thumbstick </param>
-		/// <param name="magnitudeSentinel"> thumbstick hardware max val for trimming </param>
-		/// <param name="logFunc"> Pointer to logging function of the form <c>void fn_name(const char* msg)</c> </param>
 		PolarTransform(
 			const StickValue_t stickXValue,
-			const StickValue_t stickYValue,
-			LogFn_t logFunc = nullptr,
-			const StickValue_t magnitudeSentinel = 32'766
+			const StickValue_t stickYValue
 		) noexcept
-			: MagnitudeSentinel(magnitudeSentinel),
-			LoggingCallback(std::move(logFunc))
 		{
 			ComputedInfo = ComputePolarCompleteInfo(stickXValue, stickYValue);
 		}
@@ -129,11 +119,7 @@ namespace sds
 					return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));
 				});
 			//This should not happen, but if it does, I want some kind of message about it.
-			if (quadrantResult == m_quadArray.end())
-			{
-				LoggingCallback(BAD_QUAD.data());
-				return { {0.0,0.0}, -1 };
-			}
+			assert(quadrantResult != m_quadArray.end());
 			return { .quadrant_range = (*quadrantResult), .quadrant_number = static_cast<int>(index) };
 		}
 	private:

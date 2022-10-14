@@ -17,8 +17,6 @@ namespace sds
 		using ComputationFloat_t = double;
 		// Stick input value type
 		using StickValue_t = int;
-		// Pointer to logging function of the form void fn_name(const char* msg)
-		using LogFn_t = std::function<void(const char* st)>;
 		static constexpr ComputationFloat_t MY_PI{ std::numbers::pi };
 		static constexpr ComputationFloat_t MY_PI2{ std::numbers::pi / 2.0 };
 	private:
