@@ -107,7 +107,7 @@ namespace PolarQuadrantCalcTest
 			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe, const bool printMessages = true)
 			{
 				//polar transform instance
-				sds::PolarTransform pc(x, y, LogFn, static_cast<int>(MAGNITUDE_MAX_LOCAL));
+				sds::PolarTransform<MAGNITUDE_MAX_LOCAL> pc(x, y);
 				const auto completeInfo = pc.get();
 				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
 				std::stringstream ss;

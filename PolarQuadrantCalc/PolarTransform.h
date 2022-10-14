@@ -94,9 +94,8 @@ namespace sds
 		//compute polar coord pair
 		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
 		{
-			constexpr ComputationFloat_t nonZeroValue{ 0.01 }; // cannot compute with both values at 0, this is used instead
-			const bool areBothZero = xStickValue == decltype(xStickValue){}
-									&& yStickValue == decltype(yStickValue){};
+			constexpr auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
+			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
 
 			const double xValue = areBothZero ? nonZeroValue : xStickValue;
 			const double yValue = areBothZero ? nonZeroValue : yStickValue;
@@ -130,6 +129,12 @@ namespace sds
 			tempX = std::clamp(tempX, -MagnitudeSentinel, MagnitudeSentinel);
 			tempY = std::clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
 			return { tempX, tempY };
+		}
+		[[nodiscard]] bool IsFloatZero(const auto testFloat) const noexcept
+		{
+			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
+			constexpr auto eps2 = eps * 2;
+			return std::abs(testFloat) <= eps2;
 		}
 	};
 }
