@@ -65,7 +65,7 @@ namespace sds
 		/// <summary>
 		/// Returns the polar info computed at construction.
 		/// </summary>
-		auto get() const noexcept
+		[[nodiscard]] auto get() const noexcept
 		{
 			return ComputedInfo;
 		}
