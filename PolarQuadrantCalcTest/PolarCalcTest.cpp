@@ -2,26 +2,183 @@
 #include "CppUnitTest.h"
 #include <chrono>
 #include <format>
+#include <string>
+#include <sstream>
 #include "../PolarQuadrantCalc/PolarCalc.h"
 #include "../PolarQuadrantCalc/PolarCalcFaster.h"
 #include "../PolarQuadrantCalc/PolarTransform.h"
-
+#include "../PolarQuadrantCalc/PolarTransformFloat.h"
+#include "../PolarQuadrantCalc/PolarBoost.h"
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_bin_float.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace PolarQuadrantCalcTest
 {
 	TEST_CLASS(PolarCalcTest)
 	{
-		static constexpr auto MAGNITUDE_MAX{ 28'000.0 };
+		inline static constexpr bool PrintMessages{ false };
+		static constexpr auto MAGNITUDE_MAX{ 28'000 };
 
-		void PrintDurationUnit(const auto t1, const auto t2) const noexcept
+		//template<class Tested_t>
+		//static auto GetTestedInstance(auto&& args...)
+		//{
+		//	return Tested_t{std::forward(args)};
+		//}
+		static void PrintDurationUnit(const auto t1, const auto t2, const auto RunCount) noexcept
 		{
-			std::stringstream ss;
+			std::stringstream ss, ssNs, ssUs;
 			const std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+			const std::chrono::duration<double, std::nano> fp_nano = (t2 - t1) / RunCount;
+			const std::chrono::duration<double, std::micro> fp_micro = (t2 - t1) / RunCount;
 			ss << fp_ms;
+			ssNs << fp_nano;
+			ssUs << fp_micro;
 			//ss << std::chrono::duration_cast<ChronoType_t> (t2 - t1);
 			//const auto timeResult = std::chrono::duration_cast<ChronoType_t> (timeResultEnd - timeResultBegin);
 			Logger::WriteMessage(std::format("Total time at {0} ...\n", ss.str().c_str()).c_str());
+			Logger::WriteMessage(std::format("Avg time per computation/iteration {0} ...\n", ssNs.str().c_str()).c_str());
+			Logger::WriteMessage(std::format("Avg time per computation/iteration {0} ...\n", ssUs.str().c_str()).c_str());
+		}
+
+		static void AssertXYEqual(const short SMax, auto& pc)
+		{
+			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2, SMax / 2);
+			const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
+			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
+		}
+
+		// testObj is a pre-constructed polar obj.
+		static auto RunTestLoop(auto&& testObj, const int magnitudeMax = 36'394, const int MAX_ITERATIONS = 1'000'000)
+		{
+			using std::wstring, std::wcout, std::cout;
+			using namespace std::chrono_literals;
+			using Clock_t = std::chrono::steady_clock;
+			static constexpr char newl{ '\n' };
+			static constexpr auto WITHIN_VAL{ 2000 };
+			//static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
+			//theoretical hardware value max
+			constexpr auto SMax = std::numeric_limits<SHORT>::max();
+			//theoretical hardware value max
+			constexpr auto SMin = std::numeric_limits<SHORT>::min();
+			//polar calc instance
+			auto& pc = testObj;
+			//lambda for testing
+			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe)
+			{
+				const auto completeInfo = pc.ComputePolarCompleteInfo(x, y);
+				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
+				if constexpr (PrintMessages) {
+					std::stringstream ss;
+					ss << "Magnitude of x at " << msg << ": " << xMax << newl;
+					ss << "Magnitude of y at " << msg << ": " << yMax << newl;
+					ss << "-------" << newl;
+					Logger::WriteMessage(ss.str().c_str());
+				}
+				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
+				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
+				const std::wstring xResultMessage = L"X axis not within acceptable parameters..." + std::to_wstring(xMax);
+				const std::wstring yResultMessage = L"Y axis not within acceptable parameters..." + std::to_wstring(yMax);
+				Assert::IsTrue(xResult, xResultMessage.c_str());
+				Assert::IsTrue(yResult, yResultMessage.c_str());
+			};
+			ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin, SMin, "short-min,short-min", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
+			// Quick equality test.
+			AssertXYEqual(SMax, pc);
+
+			//Running several iterations in a loop with begin and end time stamps.
+			const auto timeResultBegin = Clock_t::now();
+			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
+			{
+				ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin, SMin, "short-min,short-min", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
+			}
+			const auto timeResultEnd = Clock_t::now();
+			Logger::WriteMessage(std::format("Starting at {0} ...\n", timeResultBegin.time_since_epoch()).c_str());
+			Logger::WriteMessage(std::format("Ending at {0} ...\n", timeResultEnd.time_since_epoch()).c_str());
+			PrintDurationUnit(timeResultBegin, timeResultEnd, MAX_ITERATIONS);
+		}
+
+		// Variant for testing the compute-on-construct types.
+		template<class TestedType_t>
+		static auto RunTestLoop(auto&& GetInstanceFn, const int magnitudeMax, const int MAX_ITERATIONS = 100'000)
+		{
+			// Test fn for the transform variant of the polar calc
+			static constexpr char newl{ '\n' };
+			static constexpr auto WITHIN_VAL{ 2000 };
+
+			using std::wstring, std::wcout, std::cout;
+			using namespace std::string_literals;
+			using TestedType = TestedType_t;
+			using Clock_t = std::chrono::steady_clock;
+
+			//theoretical hardware value max
+			constexpr auto SMax = std::numeric_limits<SHORT>::max();
+			//theoretical hardware value max
+			constexpr auto SMin = std::numeric_limits<SHORT>::min();
+
+			//lambda for testing
+			auto ComputeAndShow = [&](const int x, const int y, std::string_view msg, const int xShouldBe, const int yShouldBe)
+			{
+				//polar transform instance
+				TestedType pc = GetInstanceFn(x, y);
+
+				const auto [xMax, yMax] = pc.get().adjusted_magnitudes;
+				if constexpr (PrintMessages) {
+					std::stringstream ss;
+					ss << "Magnitude of x at " << msg << ": " << xMax << newl;
+					ss << "Magnitude of y at " << msg << ": " << yMax << newl;
+					ss << "-------" << newl;
+					Logger::WriteMessage(ss.str().c_str());
+				}
+				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
+				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
+				std::wstringstream ws1, ws2;
+				std::stringstream ss1, ss2;
+				ws1 << L"X axis not within acceptable parameters: ";
+				ss1 << xMax << newl << "Quadrant: " << pc.get().quadrant_info.quadrant_number << newl;
+				std::string ts1{ ss1.str() };
+				ws1 << std::wstring{ ts1.begin(), ts1.end() };
+				ws1 << L"Inputs were: x:" << x << " y:" << y << newl;
+
+				ws2 << L"Y axis not within acceptable parameters:  ";
+				ss2 << yMax << newl << "Quadrant: " << pc.get().quadrant_info.quadrant_number << newl;
+				std::string ts2{ ss2.str() };
+				ws2 << std::wstring{ ts2.begin(), ts2.end() };
+				
+				Assert::IsTrue(xResult, ws1.str().c_str());
+				Assert::IsTrue(yResult, ws2.str().c_str());
+			};
+			ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin, SMin, "short-min,short-min", magnitudeMax, magnitudeMax);
+			ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
+			
+			const auto [xMax, yMax] = TestedType(SMax / 2, SMax / 2).get().adjusted_magnitudes;
+			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
+
+			//Running several iterations in a loop with begin and end time stamps.
+			const auto timeResultBegin = Clock_t::now();
+			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
+			{
+				ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin, SMin, "short-min,short-min", magnitudeMax, magnitudeMax);
+				ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
+			}
+			const auto timeResultEnd = Clock_t::now();
+			std::stringstream msg1, msg2;
+			msg1 << "Starting at " << timeResultBegin.time_since_epoch() << '\n';
+			msg2 << "Ending at " << timeResultEnd.time_since_epoch() << '\n';
+			Logger::WriteMessage(msg1.str().c_str());
+			Logger::WriteMessage(msg2.str().c_str());
+			PrintDurationUnit(timeResultBegin, timeResultEnd, MAX_ITERATIONS);
 		}
 	public:
 		[[nodiscard]] static constexpr bool IsWithin(const auto result, const auto testVal, const auto within) noexcept
@@ -31,179 +188,45 @@ namespace PolarQuadrantCalcTest
 
 		TEST_METHOD(TestComputeMagnitudes)
 		{
-			using std::wstring;
-			using std::wcout;
-			using std::cout;
-			static constexpr char newl{ '\n' };
-			static constexpr auto WITHIN_VAL{ 2000 };
-			static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
-			//theoretical hardware value max
-			constexpr auto SMax = std::numeric_limits<SHORT>::max();
-			//theoretical hardware value max
-			constexpr auto SMin = std::numeric_limits<SHORT>::min();
-			//error logging fn
 			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
-			//polar calc instance
-			sds::PolarCalc pc(MAGNITUDE_MAX, LogFn);
-			//lambda for testing
-			auto ComputeAndShow = [&](const double x, const double y, const std::string& msg, const double xShouldBe, const double yShouldBe, const bool printMessages = true)
-			{
-				const auto completeInfo = pc.ComputePolarCompleteInfo(x, y);
-				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
-				std::stringstream ss;
-				ss << "Magnitude of x at " + msg + ": " << xMax << newl;
-				ss << "Magnitude of y at " + msg + ": " << yMax << newl;
-				ss << "-------" << newl;
-				if (printMessages)
-					Logger::WriteMessage(ss.str().c_str());
-				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
-				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				Assert::IsTrue(xResult, L"X axis not within acceptable parameters...");
-				Assert::IsTrue(yResult, L"Y axis not within acceptable parameters...");
-			};
-			ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX);
-			ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX);
-			ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX, MAGNITUDE_MAX);
-			ComputeAndShow(SMin / 2.0, SMin / 2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0);
-			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2.0, SMax / 2.0);
-			const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
-			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
+			sds::PolarCalc pc{ MAGNITUDE_MAX };
+			RunTestLoop(pc, MAGNITUDE_MAX);
+		}
 
-			//Running several iterations in a loop with begin and end time stamps.
-			const auto timeResultBegin = std::chrono::system_clock::now();
-			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
-			{
-				ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX, false);
-				ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX, MAGNITUDE_MAX, false);
-				ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX, MAGNITUDE_MAX, false);
-				ComputeAndShow(SMin / 2.0, SMin / 2.0, "short-min/2,short-min/2", (SMax) / 2.0, (SMax) / 2.0, false);
-			}
-			const auto timeResultEnd = std::chrono::system_clock::now();
-			Logger::WriteMessage(std::format("Starting at {0} ...\n", timeResultBegin).c_str());
-			Logger::WriteMessage(std::format("Ending at {0} ...\n", timeResultEnd).c_str());
-			PrintDurationUnit(timeResultBegin, timeResultEnd);
-			//const auto timeResult = std::chrono::duration_cast<std::chrono::microseconds> (timeResultEnd - timeResultBegin);
-			//Logger::WriteMessage(std::format("Total time at {0} ...\n", timeResult).c_str());
+		TEST_METHOD(TestComputeMagnitudesBoost)
+		{
+			namespace mp = boost::multiprecision;
+			using newint = mp::int128_t;
+			using newfloat = mp::cpp_dec_float_50;
+			using TestedType = sds::PolarBoost<MAGNITUDE_MAX, newfloat, newint>;
+			RunTestLoop<TestedType>(
+				[&](int x, int y) { return TestedType{ x,y }; },
+				MAGNITUDE_MAX, 
+				10'000);
 		}
 
 		TEST_METHOD(TestComputeMagnitudesTransform)
 		{
-			// Test fn for the transform variant of the polar calc
-			using std::wstring;
-			using std::wcout;
-			using std::cout;
-			static constexpr char newl{ '\n' };
-			static constexpr auto WITHIN_VAL{ 2000 };
-			static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
-			static constexpr int MAGNITUDE_MAX_LOCAL{ 28'000 };
-			//theoretical hardware value max
-			constexpr auto SMax = std::numeric_limits<SHORT>::max();
-			//theoretical hardware value max
-			constexpr auto SMin = std::numeric_limits<SHORT>::min();
-			//error logging fn
-			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
-			
-			//lambda for testing
-			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe, const bool printMessages = true)
-			{
-				//polar transform instance
-				sds::PolarTransform<MAGNITUDE_MAX_LOCAL> pc(x, y);
-				const auto completeInfo = pc.get();
-				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
-				std::stringstream ss;
-				ss << "Magnitude of x at " + msg + ": " << xMax << newl;
-				ss << "Magnitude of y at " + msg + ": " << yMax << newl;
-				ss << "-------" << newl;
-				if (printMessages)
-					Logger::WriteMessage(ss.str().c_str());
-				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
-				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				Assert::IsTrue(xResult, L"X axis not within acceptable parameters...");
-				Assert::IsTrue(yResult, L"Y axis not within acceptable parameters...");
-			};
-			ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL);
-			ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
-			//const auto completeInfo = sds::PolarTransform(SMax / 2, SMax / 2).get();
-			const auto [xMax, yMax] = sds::PolarTransform(SMax / 2, SMax / 2).get().adjusted_magnitudes;
-			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
+			using TestedType = sds::PolarTransform<MAGNITUDE_MAX>;
+			RunTestLoop<TestedType>(
+				[&](int x, int y) { return TestedType{ x,y }; },
+				MAGNITUDE_MAX);
+		}
 
-			//Running several iterations in a loop with begin and end time stamps.
-			const auto timeResultBegin = std::chrono::system_clock::now();
-			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
-			{
-				ComputeAndShow(SMax, SMax, "short-max,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMax, "short-min,short-max", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMin, "short-min,short-min", MAGNITUDE_MAX_LOCAL, MAGNITUDE_MAX_LOCAL, false);
-				ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2, false);
-			}
-			const auto timeResultEnd = std::chrono::system_clock::now();
-			Logger::WriteMessage(std::format("Starting at {0} ...\n", timeResultBegin).c_str());
-			Logger::WriteMessage(std::format("Ending at {0} ...\n", timeResultEnd).c_str());
-			PrintDurationUnit(timeResultBegin, timeResultEnd);
-			//const auto timeResult = std::chrono::duration_cast<std::chrono::microseconds> (timeResultEnd - timeResultBegin);
-			//Logger::WriteMessage(std::format("Total time at {0} ...\n", timeResult).c_str());
+		TEST_METHOD(TestComputeMagnitudesTransformFloat)
+		{
+			using TestedType = sds::PolarTransformFloat<>;
+			RunTestLoop<TestedType>(
+				[&](int x, int y) { return TestedType{ x,y, MAGNITUDE_MAX }; },
+				MAGNITUDE_MAX);
 		}
 
 		TEST_METHOD(TestComputeMagnitudesFaster)
 		{
-			using std::wstring;
-			using std::wcout;
-			using std::cout;
-			static constexpr char newl{ '\n' };
-			static constexpr auto WITHIN_VAL{ 2000 };
-			static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
-			static constexpr int MAGNITUDE_MAX_LOCAL{ 28'000 };
-			static constexpr int INIT_MAX_LOCAL{ 39'000 };
-			static constexpr int POLAR_MAX_LOCAL{ 36'394 };
-			//theoretical hardware value max
-			constexpr auto SMax = std::numeric_limits<SHORT>::max();
-			//theoretical hardware value max
-			constexpr auto SMin = std::numeric_limits<SHORT>::min();
-			//polar calc instance
-			sds::PolarCalcFaster<INIT_MAX_LOCAL> pc;
-			//lambda for testing
-			auto ComputeAndShow = [&](const int x, const int y, const std::string& msg, const int xShouldBe, const int yShouldBe, const bool printMessages = true)
-			{
-				const auto completeInfo = pc.ComputePolarCompleteInfo(x, y);
-				const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
-				std::stringstream ss;
-				ss << "Magnitude of x at " + msg + ": " << xMax << newl;
-				ss << "Magnitude of y at " + msg + ": " << yMax << newl;
-				ss << "-------" << newl;
-				if (printMessages)
-					Logger::WriteMessage(ss.str().c_str());
-				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
-				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				const std::wstring xResultMessage = L"X axis not within acceptable parameters..." + std::to_wstring(xMax);
-				const std::wstring yResultMessage = L"Y axis not within acceptable parameters..." + std::to_wstring(yMax);
-				Assert::IsTrue(xResult, xResultMessage.c_str());
-				Assert::IsTrue(yResult, yResultMessage.c_str());
-			};
-			ComputeAndShow(SMax, SMax, "short-max,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
-			ComputeAndShow(SMin, SMax, "short-min,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
-			ComputeAndShow(SMin, SMin, "short-min,short-min", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL);
-			ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2);
-			const auto completeInfo = pc.ComputePolarCompleteInfo(SMax / 2, SMax / 2);
-			const auto [xMax, yMax] = completeInfo.adjusted_magnitudes;
-			Assert::AreEqual(static_cast<int>(xMax), static_cast<int>(yMax), L"");
-
-			//Running several iterations in a loop with begin and end time stamps.
-			const auto timeResultBegin = std::chrono::system_clock::now();
-			for (size_t i = 0; i < MAX_ITERATIONS; ++i)
-			{
-				ComputeAndShow(SMax, SMax, "short-max,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMax, "short-min,short-max", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
-				ComputeAndShow(SMin, SMin, "short-min,short-min", POLAR_MAX_LOCAL, POLAR_MAX_LOCAL, false);
-				ComputeAndShow(SMin / 2, SMin / 2, "short-min/2,short-min/2", (SMax) / 2, (SMax) / 2, false);
-			}
-			const auto timeResultEnd = std::chrono::system_clock::now();
-			Logger::WriteMessage(std::format("Starting at {0} ...\n", timeResultBegin).c_str());
-			Logger::WriteMessage(std::format("Ending at {0} ...\n", timeResultEnd).c_str());
-			PrintDurationUnit(timeResultBegin, timeResultEnd);
-			//const auto timeResult = std::chrono::duration_cast<std::chrono::microseconds> (timeResultEnd - timeResultBegin);
-			//Logger::WriteMessage(std::format("Total time at {0} ...\n", timeResult).c_str());
+			using TestedType = sds::PolarCalcFaster<MAGNITUDE_MAX>;
+			TestedType pc;
+			RunTestLoop(pc, MAGNITUDE_MAX, 1'000);
 		}
+
 	};
 }

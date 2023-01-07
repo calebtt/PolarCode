@@ -35,5 +35,11 @@
     <ClInclude Include="PolarCalcFaster.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PolarBoost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolarTransformFloat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

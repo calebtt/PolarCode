@@ -1,11 +1,17 @@
 #pragma once
 #include "stdafx.h"
 #include <functional>
+#include <boost/multiprecision/cpp_bin_float.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 
 namespace sds
 {
-	template<int MagnitudeSentinel = 32'766, typename ComputationFloat_t = double, typename StickValue_t = int>
-	class PolarTransform
+	template<
+		int MagnitudeSentinel = 32'766,
+		typename ComputationFloat_t = boost::multiprecision::cpp_bin_float_50,
+		typename StickValue_t = boost::multiprecision::int128_t>
+	class PolarBoost
 	{
 	private:
 		//number of coordinate plane quadrants (obviously 4)
@@ -51,12 +57,12 @@ namespace sds
 		/// <summary> Ctor, constructs polar quadrant calc object. </summary>
 		///	<param name="stickXValue"> <b>x axis hardware</b> value from thumbstick </param>
 		///	<param name="stickYValue"> <b>y axis hardware</b> value from thumbstick </param>
-		PolarTransform(
+		PolarBoost(
 			const StickValue_t stickXValue,
 			const StickValue_t stickYValue
 		) noexcept
 		{
-			ComputedInfo = ComputePolarCompleteInfo( static_cast<ComputationFloat_t>(stickXValue), static_cast<ComputationFloat_t>(stickYValue));
+			ComputedInfo = ComputePolarCompleteInfo( stickXValue.convert_to<ComputationFloat_t>() ,  stickYValue.convert_to<ComputationFloat_t>() );
 		}
 		/// <summary>
 		/// Returns the polar info computed at construction.
@@ -66,7 +72,7 @@ namespace sds
 			return ComputedInfo;
 		}
 	private:
-		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) noexcept
+		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const ComputationFloat_t& xStickValue, const ComputationFloat_t& yStickValue) noexcept
 		{
 			PolarCompleteInfoPack tempPack{};
 			tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
@@ -75,7 +81,7 @@ namespace sds
 			return tempPack;
 		}
 		//compute adjusted magnitudes
-		[[nodiscard]] AdjustedMagnitudePack ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) const noexcept
+		[[nodiscard]] AdjustedMagnitudePack ComputeAdjustedMagnitudes(const PolarInfoPack& polarInfo, const QuadrantInfoPack& quadInfo) const noexcept
 		{
 			const auto& [polarRadius, polarTheta] = polarInfo;
 			const auto& [quadrantSentinelPair, quadrantNumber] = quadInfo;
@@ -83,33 +89,36 @@ namespace sds
 			//compute proportion of the radius for each axis to be the axial magnitudes, apparently a per-quadrant calculation with my setup.
 			const auto redPortion = (polarTheta - quadrantBeginVal) * polarRadius;
 			const auto blackPortion = (quadrantSentinelVal - polarTheta) * polarRadius;
-			const double xProportion = quadrantNumber % 2 ? blackPortion : redPortion;
-			const double yProportion = quadrantNumber % 2 ? redPortion : blackPortion;
-			return TrimMagnitudeToSentinel(static_cast<StickValue_t>(xProportion), static_cast<StickValue_t>(yProportion));
+			const auto xProportion = quadrantNumber % 2 ? blackPortion : redPortion;
+			const auto yProportion = quadrantNumber % 2 ? redPortion : blackPortion;
+			const auto rx = static_cast<StickValue_t>(xProportion);
+			const auto ry = static_cast<StickValue_t>(yProportion);
+			return TrimMagnitudeToSentinel(rx, ry);
 		}
 		//compute polar coord pair
-		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
+		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t& xStickValue, const ComputationFloat_t& yStickValue) const noexcept
 		{
-			constexpr auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
+			const auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
 			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
 
-			const double xValue = areBothZero ? nonZeroValue : xStickValue;
-			const double yValue = areBothZero ? nonZeroValue : yStickValue;
+			const auto xValue = areBothZero ? nonZeroValue : xStickValue;
+			const auto yValue = areBothZero ? nonZeroValue : yStickValue;
 			const auto xSquared = xValue * xValue;
 			const auto ySquared = yValue * yValue;
-			const auto rad = std::sqrt(xSquared + ySquared);
-			const auto angle = std::atan2(yValue, xValue);
+			const auto rad = sqrt(ComputationFloat_t(xSquared + ySquared));
+			const auto angle = atan2(yValue, xValue);
 			return { .polar_radius = rad, .polar_theta_angle = angle };
 		}
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
+		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t& polarTheta) noexcept
 		{
-			size_t index{};
+			int index{};
 			//Find polar theta value's place in the quadrant range array.
-			const auto quadrantResult = std::ranges::find_if(m_quadArray, [&](const auto val)
+			const auto quadrantResult = std::ranges::find_if(m_quadArray, [&](const auto& val)
 				{
 					++index;
+					// Real check
 					return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));
 				});
 			//This should not happen, but if it does, I want some kind of message about it.
@@ -118,19 +127,33 @@ namespace sds
 		}
 	private:
 		//trim computed magnitude values to sentinel value
-		[[nodiscard]] constexpr AdjustedMagnitudePack TrimMagnitudeToSentinel(const int x, const int y) const noexcept
+		[[nodiscard]] constexpr AdjustedMagnitudePack TrimMagnitudeToSentinel(const auto& x, const auto& y) const noexcept
 		{
 			auto tempX = x;
 			auto tempY = y;
-			tempX = std::clamp(tempX, -MagnitudeSentinel, MagnitudeSentinel);
-			tempY = std::clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
+			tempX = Clamp(tempX, -MagnitudeSentinel, MagnitudeSentinel);
+			tempY = Clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
 			return { tempX, tempY };
 		}
 		[[nodiscard]] bool IsFloatZero(const auto testFloat) const noexcept
 		{
-			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
-			constexpr auto eps2 = eps * 2;
-			return std::abs(testFloat) <= eps2;
+			const auto eps = std::numeric_limits< std::remove_cv_t<decltype(testFloat)> >::epsilon();
+			const auto eps2 = eps * 2;
+			return abs(testFloat) <= eps2;
+		}
+		template<typename T1>
+		[[nodiscard]]
+		constexpr
+		static
+		auto Clamp(const auto& val, const T1& minVal, const T1& maxVal) noexcept
+		{
+			if (val < minVal)
+				return decltype(val){minVal};
+			if (val > maxVal)
+				return decltype(val){maxVal};
+			return val;
 		}
 	};
+
+	using PolarCalcBoost = PolarBoost<>;
 }
