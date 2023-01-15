@@ -105,7 +105,7 @@ namespace sds
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
 		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
 		{
-			size_t index{};
+			int index{};
 			//Find polar theta value's place in the quadrant range array.
 			const auto quadrantResult = std::ranges::find_if(m_quadArray, [&](const auto val)
 				{

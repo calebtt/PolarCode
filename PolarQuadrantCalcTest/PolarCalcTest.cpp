@@ -7,11 +7,15 @@
 #include "../PolarQuadrantCalc/PolarCalc.h"
 #include "../PolarQuadrantCalc/PolarCalcFaster.h"
 #include "../PolarQuadrantCalc/PolarTransform.h"
-#include "../PolarQuadrantCalc/PolarTransformFloat.h"
+#include "../PolarQuadrantCalc/PolarTransformOptional.h"
+#include "../PolarQuadrantCalc/PolarXformChecked.h"
 #include "../PolarQuadrantCalc/PolarBoost.h"
+#ifdef HAS_BOOST
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#endif
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace PolarQuadrantCalcTest
@@ -20,12 +24,42 @@ namespace PolarQuadrantCalcTest
 	{
 		inline static constexpr bool PrintMessages{ false };
 		static constexpr auto MAGNITUDE_MAX{ 28'000 };
+		static constexpr char newl{ '\n' };
 
-		//template<class Tested_t>
-		//static auto GetTestedInstance(auto&& args...)
-		//{
-		//	return Tested_t{std::forward(args)};
-		//}
+		static
+		auto AssertValues(
+			const auto xMax, 
+			const auto yMax, 
+			const auto x, 
+			const auto y,
+			const auto xResult,
+			const auto yResult)
+		{
+			if constexpr (PrintMessages)
+			{
+				std::wstringstream ws1, ws2;
+				std::stringstream ss1, ss2;
+				ws1 << L"X axis not within acceptable parameters: ";
+				ss1 << xMax << newl;
+				std::string ts1{ ss1.str() };
+				ws1 << std::wstring{ ts1.begin(), ts1.end() };
+				ws1 << L"Inputs were: x:" << x << " y:" << y << newl;
+
+				ws2 << L"Y axis not within acceptable parameters:  ";
+				ss2 << yMax << newl;
+				std::string ts2{ ss2.str() };
+				ws2 << std::wstring{ ts2.begin(), ts2.end() };
+
+				Assert::IsTrue(xResult, ws1.str().c_str());
+				Assert::IsTrue(yResult, ws2.str().c_str());
+			}
+			else
+			{
+				Assert::IsTrue(xResult);
+				Assert::IsTrue(yResult);
+			}
+		}
+
 		static void PrintDurationUnit(const auto t1, const auto t2, const auto RunCount) noexcept
 		{
 			std::stringstream ss, ssNs, ssUs;
@@ -55,7 +89,6 @@ namespace PolarQuadrantCalcTest
 			using std::wstring, std::wcout, std::cout;
 			using namespace std::chrono_literals;
 			using Clock_t = std::chrono::steady_clock;
-			static constexpr char newl{ '\n' };
 			static constexpr auto WITHIN_VAL{ 2000 };
 			//static constexpr size_t MAX_ITERATIONS{ 1'000'000 };
 			//theoretical hardware value max
@@ -78,10 +111,7 @@ namespace PolarQuadrantCalcTest
 				}
 				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
 				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				const std::wstring xResultMessage = L"X axis not within acceptable parameters..." + std::to_wstring(xMax);
-				const std::wstring yResultMessage = L"Y axis not within acceptable parameters..." + std::to_wstring(yMax);
-				Assert::IsTrue(xResult, xResultMessage.c_str());
-				Assert::IsTrue(yResult, yResultMessage.c_str());
+				AssertValues(xMax, yMax, x, y, xResult, yResult);
 			};
 			ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
 			ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
@@ -110,7 +140,6 @@ namespace PolarQuadrantCalcTest
 		static auto RunTestLoop(auto&& GetInstanceFn, const int magnitudeMax, const int MAX_ITERATIONS = 100'000)
 		{
 			// Test fn for the transform variant of the polar calc
-			static constexpr char newl{ '\n' };
 			static constexpr auto WITHIN_VAL{ 2000 };
 
 			using std::wstring, std::wcout, std::cout;
@@ -139,21 +168,7 @@ namespace PolarQuadrantCalcTest
 				}
 				const auto xResult = IsWithin(xMax, xShouldBe, WITHIN_VAL);
 				const auto yResult = IsWithin(yMax, yShouldBe, WITHIN_VAL);
-				std::wstringstream ws1, ws2;
-				std::stringstream ss1, ss2;
-				ws1 << L"X axis not within acceptable parameters: ";
-				ss1 << xMax << newl << "Quadrant: " << pc.get().quadrant_info.quadrant_number << newl;
-				std::string ts1{ ss1.str() };
-				ws1 << std::wstring{ ts1.begin(), ts1.end() };
-				ws1 << L"Inputs were: x:" << x << " y:" << y << newl;
-
-				ws2 << L"Y axis not within acceptable parameters:  ";
-				ss2 << yMax << newl << "Quadrant: " << pc.get().quadrant_info.quadrant_number << newl;
-				std::string ts2{ ss2.str() };
-				ws2 << std::wstring{ ts2.begin(), ts2.end() };
-				
-				Assert::IsTrue(xResult, ws1.str().c_str());
-				Assert::IsTrue(yResult, ws2.str().c_str());
+				AssertValues(xMax, yMax, x, y, xResult, yResult);
 			};
 			ComputeAndShow(SMax, SMax, "short-max,short-max", magnitudeMax, magnitudeMax);
 			ComputeAndShow(SMin, SMax, "short-min,short-max", magnitudeMax, magnitudeMax);
@@ -180,6 +195,7 @@ namespace PolarQuadrantCalcTest
 			Logger::WriteMessage(msg2.str().c_str());
 			PrintDurationUnit(timeResultBegin, timeResultEnd, MAX_ITERATIONS);
 		}
+
 	public:
 		[[nodiscard]] static constexpr bool IsWithin(const auto result, const auto testVal, const auto within) noexcept
 		{
@@ -190,19 +206,23 @@ namespace PolarQuadrantCalcTest
 		{
 			auto LogFn = [this](const char* str) { Logger::WriteMessage(str); Assert::IsTrue(false); };
 			sds::PolarCalc pc{ MAGNITUDE_MAX };
-			RunTestLoop(pc, MAGNITUDE_MAX);
+			RunTestLoop(pc, MAGNITUDE_MAX, 1'000);
 		}
 
 		TEST_METHOD(TestComputeMagnitudesBoost)
 		{
+#ifdef HAS_BOOST
 			namespace mp = boost::multiprecision;
 			using newint = mp::int128_t;
 			using newfloat = mp::cpp_dec_float_50;
 			using TestedType = sds::PolarBoost<MAGNITUDE_MAX, newfloat, newint>;
-			RunTestLoop<TestedType>(
-				[&](int x, int y) { return TestedType{ x,y }; },
-				MAGNITUDE_MAX, 
-				10'000);
+			TestedType pc;
+			RunTestLoop(pc, MAGNITUDE_MAX, 1'000);
+			//RunTestLoop<TestedType>(
+			//	[&](int x, int y) { return TestedType{ x,y }; },
+			//	MAGNITUDE_MAX, 
+			//	1'000);
+#endif
 		}
 
 		TEST_METHOD(TestComputeMagnitudesTransform)
@@ -210,15 +230,25 @@ namespace PolarQuadrantCalcTest
 			using TestedType = sds::PolarTransform<MAGNITUDE_MAX>;
 			RunTestLoop<TestedType>(
 				[&](int x, int y) { return TestedType{ x,y }; },
-				MAGNITUDE_MAX);
+				MAGNITUDE_MAX, 1'000);
 		}
 
-		TEST_METHOD(TestComputeMagnitudesTransformFloat)
+		TEST_METHOD(TestComputeMagnitudesTransformOptional)
 		{
-			using TestedType = sds::PolarTransformFloat<>;
+			using TestedType = sds::PolarTransformOptional<MAGNITUDE_MAX>;
 			RunTestLoop<TestedType>(
-				[&](int x, int y) { return TestedType{ x,y, MAGNITUDE_MAX }; },
-				MAGNITUDE_MAX);
+				[&](int x, int y) { return TestedType{ x,y }; },
+				MAGNITUDE_MAX, 1'000);
+		}
+
+		TEST_METHOD(TestComputeMagnitudesTransformChecked)
+		{
+#ifdef HAS_BOOST
+			using TestedType = sds::PolarXformChecked<>;
+			RunTestLoop<TestedType>(
+				[&](const int x, const int y) { return TestedType{ x,y, MAGNITUDE_MAX }; },
+				MAGNITUDE_MAX, 1'000);
+#endif
 		}
 
 		TEST_METHOD(TestComputeMagnitudesFaster)

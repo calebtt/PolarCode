@@ -1,9 +1,11 @@
 #pragma once
 #include "stdafx.h"
 #include <functional>
+#ifdef HAS_BOOST
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+
 
 namespace sds
 {
@@ -52,27 +54,29 @@ namespace sds
 			std::make_pair(-MY_PI2, 0.0)
 		};
 		// Holds the polar info computed at construction.
-		PolarCompleteInfoPack ComputedInfo{};
+		//PolarCompleteInfoPack ComputedInfo{};
 	public:
-		/// <summary> Ctor, constructs polar quadrant calc object. </summary>
-		///	<param name="stickXValue"> <b>x axis hardware</b> value from thumbstick </param>
-		///	<param name="stickYValue"> <b>y axis hardware</b> value from thumbstick </param>
-		PolarBoost(
-			const StickValue_t stickXValue,
-			const StickValue_t stickYValue
-		) noexcept
-		{
-			ComputedInfo = ComputePolarCompleteInfo( stickXValue.convert_to<ComputationFloat_t>() ,  stickYValue.convert_to<ComputationFloat_t>() );
-		}
-		/// <summary>
-		/// Returns the polar info computed at construction.
-		/// </summary>
-		[[nodiscard]] auto get() const noexcept
-		{
-			return ComputedInfo;
-		}
-	private:
-		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const ComputationFloat_t& xStickValue, const ComputationFloat_t& yStickValue) noexcept
+		///// <summary> Ctor, constructs polar quadrant calc object. </summary>
+		/////	<param name="stickXValue"> <b>x axis hardware</b> value from thumbstick </param>
+		/////	<param name="stickYValue"> <b>y axis hardware</b> value from thumbstick </param>
+		//PolarBoost(
+		//	const StickValue_t stickXValue,
+		//	const StickValue_t stickYValue
+		//) noexcept
+		//{
+		//	ComputedInfo = ComputePolarCompleteInfo( stickXValue.convert_to<ComputationFloat_t>() ,  stickYValue.convert_to<ComputationFloat_t>() );
+		//}
+		///// <summary>
+		///// Returns the polar info computed at construction.
+		///// </summary>
+		//[[nodiscard]] auto get() const noexcept
+		//{
+		//	return ComputedInfo;
+		//}
+	
+		[[nodiscard]]
+		static
+		auto ComputePolarCompleteInfo(const ComputationFloat_t& xStickValue, const ComputationFloat_t& yStickValue) noexcept -> PolarCompleteInfoPack
 		{
 			PolarCompleteInfoPack tempPack{};
 			tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
@@ -80,8 +84,11 @@ namespace sds
 			tempPack.adjusted_magnitudes = ComputeAdjustedMagnitudes(tempPack.polar_info, tempPack.quadrant_info);
 			return tempPack;
 		}
+	private:
 		//compute adjusted magnitudes
-		[[nodiscard]] AdjustedMagnitudePack ComputeAdjustedMagnitudes(const PolarInfoPack& polarInfo, const QuadrantInfoPack& quadInfo) const noexcept
+		[[nodiscard]]
+		static
+		auto ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) noexcept -> AdjustedMagnitudePack
 		{
 			const auto& [polarRadius, polarTheta] = polarInfo;
 			const auto& [quadrantSentinelPair, quadrantNumber] = quadInfo;
@@ -96,7 +103,9 @@ namespace sds
 			return TrimMagnitudeToSentinel(rx, ry);
 		}
 		//compute polar coord pair
-		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t& xStickValue, const ComputationFloat_t& yStickValue) const noexcept
+		[[nodiscard]]
+		static
+		auto ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) noexcept -> PolarInfoPack
 		{
 			const auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
 			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
@@ -111,7 +120,9 @@ namespace sds
 		}
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t& polarTheta) noexcept
+		[[nodiscard]]
+		static
+		auto GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept -> QuadrantInfoPack
 		{
 			int index{};
 			//Find polar theta value's place in the quadrant range array.
@@ -127,7 +138,10 @@ namespace sds
 		}
 	private:
 		//trim computed magnitude values to sentinel value
-		[[nodiscard]] constexpr AdjustedMagnitudePack TrimMagnitudeToSentinel(const auto& x, const auto& y) const noexcept
+		[[nodiscard]]
+		static
+		constexpr
+		auto TrimMagnitudeToSentinel(const auto& x, const auto& y) noexcept -> AdjustedMagnitudePack
 		{
 			auto tempX = x;
 			auto tempY = y;
@@ -135,7 +149,9 @@ namespace sds
 			tempY = Clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
 			return { tempX, tempY };
 		}
-		[[nodiscard]] bool IsFloatZero(const auto testFloat) const noexcept
+		[[nodiscard]]
+		static
+		bool IsFloatZero(const auto testFloat) noexcept
 		{
 			const auto eps = std::numeric_limits< std::remove_cv_t<decltype(testFloat)> >::epsilon();
 			const auto eps2 = eps * 2;
@@ -157,3 +173,4 @@ namespace sds
 
 	using PolarCalcBoost = PolarBoost<>;
 }
+#endif

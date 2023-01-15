@@ -38,7 +38,10 @@
     <ClInclude Include="PolarBoost.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PolarTransformFloat.h">
+    <ClInclude Include="PolarXformChecked.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolarTransformOptional.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
