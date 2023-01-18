@@ -229,7 +229,7 @@ namespace PolarQuadrantCalcTest
 		{
 			using TestedType = sds::PolarTransform<MAGNITUDE_MAX>;
 			RunTestLoop<TestedType>(
-				[&](int x, int y) { return TestedType{ x,y }; },
+				[&](const int x, const int y) { return TestedType{ x,y }; },
 				MAGNITUDE_MAX, 1'000);
 		}
 
@@ -237,7 +237,7 @@ namespace PolarQuadrantCalcTest
 		{
 			using TestedType = sds::PolarTransformOptional<MAGNITUDE_MAX>;
 			RunTestLoop<TestedType>(
-				[&](int x, int y) { return TestedType{ x,y }; },
+				[&](const int x, const int y) { return TestedType{ x,y }; },
 				MAGNITUDE_MAX, 1'000);
 		}
 

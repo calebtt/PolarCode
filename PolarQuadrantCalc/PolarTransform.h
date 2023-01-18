@@ -61,12 +61,15 @@ namespace sds
 		/// <summary>
 		/// Returns the polar info computed at construction.
 		/// </summary>
-		[[nodiscard]] auto get() const noexcept
+		[[nodiscard]]
+		auto get() const noexcept
 		{
 			return ComputedInfo;
 		}
 	private:
-		[[nodiscard]] PolarCompleteInfoPack ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) noexcept
+		[[nodiscard]]
+		auto ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) noexcept
+			-> PolarCompleteInfoPack
 		{
 			PolarCompleteInfoPack tempPack{};
 			tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
@@ -75,7 +78,9 @@ namespace sds
 			return tempPack;
 		}
 		//compute adjusted magnitudes
-		[[nodiscard]] AdjustedMagnitudePack ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) const noexcept
+		[[nodiscard]]
+		auto ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) const noexcept
+			-> AdjustedMagnitudePack
 		{
 			const auto& [polarRadius, polarTheta] = polarInfo;
 			const auto& [quadrantSentinelPair, quadrantNumber] = quadInfo;
@@ -88,7 +93,9 @@ namespace sds
 			return TrimMagnitudeToSentinel(static_cast<StickValue_t>(xProportion), static_cast<StickValue_t>(yProportion));
 		}
 		//compute polar coord pair
-		[[nodiscard]] PolarInfoPack ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
+		[[nodiscard]]
+		auto ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
+			-> PolarInfoPack
 		{
 			constexpr auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
 			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
@@ -103,7 +110,9 @@ namespace sds
 		}
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-		[[nodiscard]] QuadrantInfoPack GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
+		[[nodiscard]]
+		auto GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
+			-> QuadrantInfoPack
 		{
 			int index{};
 			//Find polar theta value's place in the quadrant range array.
@@ -118,7 +127,10 @@ namespace sds
 		}
 	private:
 		//trim computed magnitude values to sentinel value
-		[[nodiscard]] constexpr AdjustedMagnitudePack TrimMagnitudeToSentinel(const int x, const int y) const noexcept
+		[[nodiscard]]
+		constexpr
+		auto TrimMagnitudeToSentinel(const int x, const int y) const noexcept
+			-> AdjustedMagnitudePack
 		{
 			auto tempX = x;
 			auto tempY = y;
@@ -126,7 +138,8 @@ namespace sds
 			tempY = std::clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
 			return { tempX, tempY };
 		}
-		[[nodiscard]] bool IsFloatZero(const auto testFloat) const noexcept
+		[[nodiscard]]
+		bool IsFloatZero(const auto testFloat) const noexcept
 		{
 			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
 			constexpr auto eps2 = eps * 2;

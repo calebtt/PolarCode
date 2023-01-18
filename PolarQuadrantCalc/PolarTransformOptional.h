@@ -19,8 +19,8 @@ namespace sds
 	private:
 		//number of coordinate plane quadrants (obviously 4)
 		static constexpr auto NUM_QUADRANTS = 4;
-		static constexpr double MY_PI{ std::numbers::pi };
-		static constexpr double MY_PI2{ std::numbers::pi / 2.0 };
+		static constexpr QuadRange_t MY_PI{ std::numbers::pi_v<float> };
+		static constexpr QuadRange_t MY_PI2{ std::numbers::pi_v<float> / 2.0f };
 	private:
 		// [Pair[FloatingType,FloatingType], int] wherein the quadrant_range pair is the quadrant range, and the outer int quadrant_number is the quadrant number.
 		struct QuadrantInfoPack
@@ -83,10 +83,10 @@ namespace sds
 	private:
 		//array of boundary values, used to determine which polar quadrant a polar angle resides in
 		static constexpr std::array<const std::pair<QuadRange_t, QuadRange_t>, NUM_QUADRANTS> m_quadArray{
-			std::make_pair(0.0, MY_PI2),
+			std::make_pair(decltype(MY_PI2){}, MY_PI2),
 			std::make_pair(MY_PI2, MY_PI),
 			std::make_pair(-MY_PI, -MY_PI2),
-			std::make_pair(-MY_PI2, 0.0)
+			std::make_pair(-MY_PI2, decltype(MY_PI2){})
 		};
 		// Holds the polar info computed at construction.
 		PolarCompleteInfoPack ComputedInfo{};
