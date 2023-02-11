@@ -154,6 +154,7 @@
     <ClInclude Include="PolarCalc.h" />
     <ClInclude Include="PolarCalcFaster.h" />
     <ClInclude Include="PolarTransform.h" />
+    <ClInclude Include="PolarTransformMag.h" />
     <ClInclude Include="PolarTransformOptional.h" />
     <ClInclude Include="PolarXformChecked.h" />
     <ClInclude Include="stdafx.h" />

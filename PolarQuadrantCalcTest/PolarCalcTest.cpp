@@ -7,6 +7,7 @@
 #include "../PolarQuadrantCalc/PolarCalc.h"
 #include "../PolarQuadrantCalc/PolarCalcFaster.h"
 #include "../PolarQuadrantCalc/PolarTransform.h"
+#include "../PolarQuadrantCalc/PolarTransformMag.h"
 #include "../PolarQuadrantCalc/PolarTransformOptional.h"
 #include "../PolarQuadrantCalc/PolarXformChecked.h"
 #include "../PolarQuadrantCalc/PolarBoost.h"
@@ -230,6 +231,14 @@ namespace PolarQuadrantCalcTest
 			using TestedType = sds::PolarTransform<MAGNITUDE_MAX>;
 			RunTestLoop<TestedType>(
 				[&](const int x, const int y) { return TestedType{ x,y }; },
+				MAGNITUDE_MAX, 1'000);
+		}
+
+		TEST_METHOD(TestComputeMagnitudesTransformMag)
+		{
+			using TestedType = sds::PolarTransformMag<>;
+			RunTestLoop<TestedType>(
+				[&](const int x, const int y) { return TestedType{ x,y,MAGNITUDE_MAX }; },
 				MAGNITUDE_MAX, 1'000);
 		}
 

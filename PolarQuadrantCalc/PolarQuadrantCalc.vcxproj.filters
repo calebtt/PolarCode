@@ -44,5 +44,8 @@
     <ClInclude Include="PolarTransformOptional.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PolarTransformMag.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
