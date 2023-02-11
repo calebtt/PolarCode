@@ -111,7 +111,7 @@ namespace sds
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
 		[[nodiscard]]
-		auto GetQuadrantInfo(const ComputationFloat_t polarTheta) noexcept
+		auto GetQuadrantInfo(const ComputationFloat_t polarTheta) const noexcept
 			-> QuadrantInfoPack
 		{
 			int index{};
