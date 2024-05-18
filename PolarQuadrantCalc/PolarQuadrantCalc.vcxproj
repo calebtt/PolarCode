@@ -150,9 +150,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GetterExit.h" />
+    <ClInclude Include="PolarAlgorithms.h" />
     <ClInclude Include="PolarBoost.h" />
     <ClInclude Include="PolarCalc.h" />
     <ClInclude Include="PolarCalcFaster.h" />
+    <ClInclude Include="PolarInfoTypes.h" />
     <ClInclude Include="PolarTransform.h" />
     <ClInclude Include="PolarTransformMag.h" />
     <ClInclude Include="PolarTransformOptional.h" />

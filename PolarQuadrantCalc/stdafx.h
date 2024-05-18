@@ -5,6 +5,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#define HAS_BOOST
 #include <Windows.h>
 #include <Xinput.h>
 #include <iostream>

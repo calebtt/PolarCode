@@ -1,54 +1,42 @@
 #pragma once
 #include "stdafx.h"
-#include <functional>
+#include "PolarInfoTypes.h"
 
 namespace sds
 {
-	template<typename ComputationFloat_t = double, typename StickValue_t = int>
 	class PolarTransformMag
 	{
 	private:
+		//using ComputationFloat_t = PolarInfoTypes::ComputationFloat_t;
+		//using StickValue_t = PolarInfoTypes::StickValue_t;
+		//using PolarInfoPack = PolarInfoTypes::PolarInfoPack;
+		//using QuadrantInfoPack = PolarInfoTypes::QuadrantInfoPack;
+		//using AdjustedMagnitudePack = PolarInfoTypes::AdjustedMagnitudePack;
+		//using PolarCompleteInfoPack = PolarInfoTypes::PolarCompleteInfoPack;
+
 		//number of coordinate plane quadrants (obviously 4)
 		static constexpr auto NUM_QUADRANTS = 4;
 		static constexpr double MY_PI{ std::numbers::pi };
 		static constexpr double MY_PI2{ std::numbers::pi / 2.0 };
 		static constexpr StickValue_t MAG_SENT_DEFAULT{ 32'766 };
 	private:
-		// [Pair[FloatingType,FloatingType], int] wherein the quadrant_range pair is the quadrant range, and the outer int quadrant_number is the quadrant number.
-		struct QuadrantInfoPack
-		{
-			std::pair<ComputationFloat_t, ComputationFloat_t> quadrant_range{};
-			int quadrant_number{};
-		};
-		//Pair[FloatingType, FloatingType] wherein the first member is the polar radius, and the second is the polar theta angle.
-		struct PolarInfoPack
-		{
-			ComputationFloat_t polar_radius{};
-			ComputationFloat_t polar_theta_angle{};
-		};
-		//Pair[FloatingType, FloatingType] wherein the first member is the adjusted X magnitude value, and the second is the adjusted Y magnitude
-		struct AdjustedMagnitudePack
-		{
-			StickValue_t x_adjusted_mag{};
-			StickValue_t y_adjusted_mag{};
-		};
-		struct PolarCompleteInfoPack
-		{
-			PolarInfoPack polar_info{};
-			QuadrantInfoPack quadrant_info{};
-			AdjustedMagnitudePack adjusted_magnitudes{};
-		};
-	private:
 		//array of boundary values, used to determine which polar quadrant a polar angle resides in
-		static constexpr std::array<const std::pair<double, double>, NUM_QUADRANTS> m_quadArray{
-			std::make_pair(0.0, MY_PI2),
-			std::make_pair(MY_PI2, MY_PI),
-			std::make_pair(-MY_PI, -MY_PI2),
-			std::make_pair(-MY_PI2, 0.0)
+		static constexpr std::array<std::tuple<double, double>, NUM_QUADRANTS> m_quadArray
+		{
+			std::make_tuple(0.0, MY_PI2),
+			std::make_tuple(MY_PI2, MY_PI),
+			std::make_tuple(-MY_PI, -MY_PI2),
+			std::make_tuple(-MY_PI2, 0.0)
 		};
+		//static constexpr std::array<const std::pair<double, double>, NUM_QUADRANTS> m_quadArray{
+		//	std::make_pair(0.0, MY_PI2),
+		//	std::make_pair(MY_PI2, MY_PI),
+		//	std::make_pair(-MY_PI, -MY_PI2),
+		//	std::make_pair(-MY_PI2, 0.0)
+		//};
 		// Holds the polar info computed at construction.
 		PolarCompleteInfoPack ComputedInfo{};
-		StickValue_t m_magSentinel;
+		StickValue_t m_magSentinel{ MAG_SENT_DEFAULT };
 	public:
 		/// <summary> Ctor, constructs polar quadrant calc object. </summary>
 		///	<param name="xStickVal"> <b>x axis hardware</b> value from thumbstick </param>
@@ -58,18 +46,14 @@ namespace sds
 		{
 			ComputedInfo = ComputePolarCompleteInfo(static_cast<ComputationFloat_t>(xStickVal), static_cast<ComputationFloat_t>(yStickVal));
 		}
-		/// <summary>
-		/// Returns the polar info computed at construction.
-		/// </summary>
+
 		[[nodiscard]]
 		auto get() const noexcept
 		{
 			return ComputedInfo;
 		}
 	private:
-		[[nodiscard]]
-		auto ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
-			-> PolarCompleteInfoPack
+		[[nodiscard]] auto ComputePolarCompleteInfo(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept -> PolarCompleteInfoPack
 		{
 			PolarCompleteInfoPack tempPack{};
 			tempPack.polar_info = ComputePolarPair(xStickValue, yStickValue);
@@ -78,9 +62,7 @@ namespace sds
 			return tempPack;
 		}
 		//compute adjusted magnitudes
-		[[nodiscard]]
-		auto ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) const noexcept
-			-> AdjustedMagnitudePack
+		[[nodiscard]] auto ComputeAdjustedMagnitudes(const PolarInfoPack polarInfo, const QuadrantInfoPack quadInfo) const noexcept -> AdjustedMagnitudePack
 		{
 			const auto& [polarRadius, polarTheta] = polarInfo;
 			const auto& [quadrantSentinelPair, quadrantNumber] = quadInfo;
@@ -93,9 +75,7 @@ namespace sds
 			return TrimMagnitudeToSentinel(static_cast<StickValue_t>(xProportion), static_cast<StickValue_t>(yProportion));
 		}
 		//compute polar coord pair
-		[[nodiscard]]
-		auto ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept
-			-> PolarInfoPack
+		[[nodiscard]] auto ComputePolarPair(const ComputationFloat_t xStickValue, const ComputationFloat_t yStickValue) const noexcept -> PolarInfoPack
 		{
 			constexpr auto nonZeroValue{ std::numeric_limits<ComputationFloat_t>::min() }; // cannot compute with both values at 0, this is used instead
 			const bool areBothZero = IsFloatZero(xStickValue) && IsFloatZero(yStickValue);
@@ -110,16 +90,14 @@ namespace sds
 		}
 		/// <summary> Retrieves begin and end range values for the quadrant the polar theta (angle) value resides in, and the quadrant number (NOT zero indexed!) </summary>
 		/// <returns> Pair[Pair[double,double], int] wherein the inner pair is the quadrant range, and the outer int is the quadrant number. </returns>
-		[[nodiscard]]
-		auto GetQuadrantInfo(const ComputationFloat_t polarTheta) const noexcept
-			-> QuadrantInfoPack
+		[[nodiscard]] auto GetQuadrantInfo(const ComputationFloat_t polarTheta) const noexcept -> QuadrantInfoPack
 		{
 			int index{};
 			//Find polar theta value's place in the quadrant range array.
 			const auto quadrantResult = std::ranges::find_if(m_quadArray, [&](const auto val)
 				{
 					++index;
-			return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));
+					return (polarTheta >= std::get<0>(val) && polarTheta <= std::get<1>(val));
 				});
 			//This should not happen, but if it does, I want some kind of message about it.
 			assert(quadrantResult != m_quadArray.end());
@@ -127,23 +105,22 @@ namespace sds
 		}
 	private:
 		//trim computed magnitude values to sentinel value
-		[[nodiscard]]
-		constexpr
-		auto TrimMagnitudeToSentinel(const int x, const int y) const noexcept
-			-> AdjustedMagnitudePack
+		[[nodiscard]] constexpr auto TrimMagnitudeToSentinel(const int x, const int y) const noexcept -> AdjustedMagnitudePack
 		{
+			using std::clamp;
 			auto tempX = x;
 			auto tempY = y;
-			tempX = std::clamp(tempX, -m_magSentinel, m_magSentinel);
-			tempY = std::clamp(tempY, -m_magSentinel, m_magSentinel);
+			tempX = clamp(tempX, -m_magSentinel, m_magSentinel);
+			tempY = clamp(tempY, -m_magSentinel, m_magSentinel);
 			return { tempX, tempY };
 		}
-		[[nodiscard]]
-		bool IsFloatZero(const auto testFloat) const noexcept
+
+		[[nodiscard]] constexpr bool IsFloatZero(const auto testFloat) const noexcept
 		{
-			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
+			using std::abs, std::numeric_limits;
+			constexpr auto eps = numeric_limits<decltype(testFloat)>::epsilon();
 			constexpr auto eps2 = eps * 2;
-			return std::abs(testFloat) <= eps2;
+			return abs(testFloat) <= eps2;
 		}
 	};
 }
