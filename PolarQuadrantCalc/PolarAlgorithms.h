@@ -26,18 +26,26 @@ namespace sds
 		template<int MagnitudeSentinel = 32'766>
 		[[nodiscard]] constexpr auto TrimMagnitudeToSentinel(const int x, const int y) noexcept -> AdjustedMagnitudePack
 		{
-			auto tempX = x;
-			auto tempY = y;
-			tempX = std::clamp(tempX, -MagnitudeSentinel, MagnitudeSentinel);
-			tempY = std::clamp(tempY, -MagnitudeSentinel, MagnitudeSentinel);
-			return { tempX, tempY };
+			return { std::clamp(x, -MagnitudeSentinel, MagnitudeSentinel), std::clamp(y, -MagnitudeSentinel, MagnitudeSentinel) };
 		}
 
 		[[nodiscard]] constexpr bool IsFloatZero(const auto testFloat) noexcept
 		{
-			constexpr auto eps = std::numeric_limits<decltype(testFloat)>::epsilon();
+			using std::abs;
+			using std::numeric_limits;
+			constexpr auto eps = numeric_limits<decltype(testFloat)>::epsilon();
 			constexpr auto eps2 = eps * 2;
-			return std::abs(testFloat) <= eps2;
+			return abs(testFloat) <= eps2;
+		}
+
+		template<typename T1>
+		[[nodiscard]] constexpr auto Clamp(const auto& val, const T1& minVal, const T1& maxVal) noexcept
+		{
+			if (val < minVal)
+				return decltype(val){minVal};
+			if (val > maxVal)
+				return decltype(val){maxVal};
+			return val;
 		}
 
 	}

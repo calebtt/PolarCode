@@ -1,6 +1,6 @@
 #include "stdafx.h"
-#include "PolarCalc.h"
 #include "GetterExit.h"
+#include "PolarAlgorithms.h"
 static constexpr auto newl = '\n';
 
 
@@ -27,10 +27,8 @@ MouseSettings m_mouse_settings{};
 void DoPolarCalc(const XINPUT_STATE &state)
 {
 	using std::cout;
-	auto LogFn = [](const char* str) { std::cerr << str << newl; };
-	sds::PolarCalc pc(32'766, LogFn);
 	//get info members
-	const auto polarComplete = pc.ComputePolarCompleteInfo(state.Gamepad.sThumbRX, state.Gamepad.sThumbRY);
+	const auto polarComplete = sds::ComputePolarCompleteInfo(state.Gamepad.sThumbRX, state.Gamepad.sThumbRY);
 	//alias for adjusted magnitude values
 	const auto [xMagnitude, yMagnitude] = polarComplete.adjusted_magnitudes;
 	//alias for polar radius and polar theta angle
@@ -40,7 +38,7 @@ void DoPolarCalc(const XINPUT_STATE &state)
 	//convert magnitudes to delays (directly)
 	const auto [xDelay, yDelay] = ConvertMagnitudesToDelays(xMagnitude, yMagnitude);
 	cout << "Radius: " << polarRadius << newl;
-	cout << "Theta Angle: " << polarTheta << " Half Angle is: " << ((rangePair.second - rangePair.first) / 2.0) + rangePair.first << newl;
+	cout << "Theta Angle: " << polarTheta << " Half Angle is: " << ((std::get<1>(rangePair) - std::get<0>(rangePair)) / 2.0) + std::get<0>(rangePair) << newl;
 	cout << "X adjusted mag: " << xMagnitude << newl;
 	cout << "Y adjusted mag: " << yMagnitude << newl;
 	cout << "Quadrant: " << quadResult << " With bounds: " << std::get<0>(rangePair) << "," << std::get<1>(rangePair) << newl;
@@ -56,10 +54,8 @@ void DoPolarCalc(const XINPUT_STATE &state)
 void DoScaleInputValues(const XINPUT_STATE& state)
 {
 	using std::cout;
-	auto LogFn = [](const char* str) { std::cerr << str << newl; };
-	sds::PolarCalc pc(32'766, LogFn);
 	//get info members
-	const auto polarComplete = pc.ComputePolarCompleteInfo(state.Gamepad.sThumbRX, state.Gamepad.sThumbRY);
+	const auto polarComplete = sds::ComputePolarCompleteInfo(state.Gamepad.sThumbRX, state.Gamepad.sThumbRY);
 	//alias for adjusted magnitude values
 	const auto [xMagnitude, yMagnitude] = polarComplete.adjusted_magnitudes;
 	//alias for polar radius and polar theta angle
@@ -71,7 +67,7 @@ void DoScaleInputValues(const XINPUT_STATE& state)
 	cout << "Hardware: [X]:" << state.Gamepad.sThumbRX << " [Y]:" << state.Gamepad.sThumbRY << newl;
 	cout << "-------" << newl;
 	cout << "Radius: " << polarRadius << newl;
-	cout << "Theta Angle: " << polarTheta << " Half Angle is: " << ((rangePair.second - rangePair.first) / 2.0) + rangePair.first << newl;
+	cout << "Theta Angle: " << polarTheta << " Half Angle is: " << ((std::get<1>(rangePair) - std::get<0>(rangePair)) / 2.0) + std::get<0>(rangePair) << newl;
 	cout << "X adjusted mag: " << xMagnitude << newl;
 	cout << "Y adjusted mag: " << yMagnitude << newl;
 	cout << "Quadrant: " << quadResult << " With bounds: " << std::get<0>(rangePair) << "," << std::get<1>(rangePair) << newl;
