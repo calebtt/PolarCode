@@ -26,13 +26,10 @@
     <ClInclude Include="GetterExit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PolarCalc.h">
+    <ClInclude Include="PolarInfoTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PolarTransform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PolarCalcFaster.h">
+    <ClInclude Include="PolarAlgorithms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

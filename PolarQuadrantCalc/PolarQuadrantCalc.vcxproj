@@ -118,7 +118,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,9 +150,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GetterExit.h" />
-    <ClInclude Include="PolarCalc.h" />
-    <ClInclude Include="PolarCalcFaster.h" />
-    <ClInclude Include="PolarTransform.h" />
+    <ClInclude Include="PolarAlgorithms.h" />
+    <ClInclude Include="PolarInfoTypes.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
